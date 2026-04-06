@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Manager - Login</title>
+    <style>
+        body { font-family: system-ui; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f4f3ef; margin: 0; }
+        .login { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); text-align: center; }
+        input { width: 100%; padding: 12px; border: 1px solid #e8e8e2; border-radius: 8px; font-size: 16px; margin: 8px 0; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #181814; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="login" id="login">
+        <h2>Enter Password</h2>
+        <input type="password" id="pass" placeholder="Password required">
+        <button onclick="checkPass()">Access Client Manager</button>
+    </div>
+    <div id="app" style="display: none;"></div>
+
+    <script>
+        const PASSWORD = "yourpassword";  // Change this!
+        const APP_URL = "client-manager-2.html";  // Your file
+
+        async function checkPass() {
+            const input = document.getElementById('pass').value;
+            if (input !== PASSWORD) {
+                alert('Incorrect password!');
+                return;
+            }
+            document.getElementById('login').style.display = 'none';
+
+            try {
+                const response = await fetch(APP_URL);
+                const html = await response.text();
+                document.getElementById('app').innerHTML = html;
+                document.getElementById('app').style.display = 'block';
+            } catch (e) {
+                document.body.innerHTML = '<p>Error loading app. Ensure client-manager-2.html is in the same folder.</p>';
+            }
+        }
+    </script>
+</body>
+</html>

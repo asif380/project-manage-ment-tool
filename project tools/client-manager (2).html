@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Manager</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f3ef;--card:#fff;--border:#e8e8e2;--border2:#d0d0c6;
+  --text:#181814;--muted:#7a7a72;--hint:#b8b8b0;
+  --green:#0a6640;--gbg:#e8f5ee;
+  --blue:#1a56b0;--bbg:#e8f0fe;
+  --amber:#92400e;--abg:#fef3c7;
+  --red:#b91c1c;--rbg:#fef2f2;
+  --wgd:#128C7E;--wg:#25D366;--wgbg:#e8fdf0;
+  --r:12px;--font:'Segoe UI',system-ui,-apple-system,sans-serif;
+}
+body{background:var(--bg);font-family:var(--font);color:var(--text);min-height:100vh}
+.wrap{max-width:980px;margin:0 auto;padding:1.75rem 1rem 3rem}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.75rem;gap:12px;flex-wrap:wrap}
+.topbar h1{font-size:22px;font-weight:700;letter-spacing:-.3px}
+.topbar-right{display:flex;gap:8px;flex-wrap:wrap}
+.btn{height:36px;padding:0 15px;border:1px solid var(--border2);border-radius:8px;background:var(--card);color:var(--text);font-size:13px;font-family:var(--font);cursor:pointer;transition:background .15s;white-space:nowrap}
+.btn:hover{background:#f0f0ec}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--text);color:#fff;border-color:var(--text)}
+.btn.primary:hover{opacity:.85}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:13px 16px}
+.stat-n{font-size:26px;font-weight:700;line-height:1}
+.stat-l{font-size:12px;color:var(--muted);margin-top:3px}
+.search{margin-bottom:1.25rem}
+.search input{width:100%;height:40px;padding:0 14px;border:1px solid var(--border2);border-radius:9px;font-size:14px;font-family:var(--font);color:var(--text);background:var(--card);outline:none}
+.search input:focus{border-color:#999}
+.search input::placeholder{color:var(--hint)}
+.filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:1.25rem}
+.fc{height:28px;padding:0 12px;border:1px solid var(--border);border-radius:20px;font-size:12px;cursor:pointer;background:var(--card);color:var(--muted);font-family:var(--font)}
+.fc:hover{border-color:var(--border2)}
+.fc.on{background:var(--text);color:#fff;border-color:var(--text)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:14px}
+.empty{grid-column:1/-1;text-align:center;padding:4rem 1rem;color:var(--muted)}
+.empty p{margin-bottom:12px;font-size:15px}
+
+/* STATUS BADGES */
+.sbadge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:10px}
+.sbadge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.7}
+.s-new{background:#f1f0ec;color:#555}
+.s-progressing{background:var(--bbg);color:var(--blue)}
+.s-review{background:var(--abg);color:var(--amber)}
+.s-completed{background:var(--gbg);color:var(--green)}
+.s-hold{background:var(--rbg);color:var(--red)}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:box-shadow .2s,border-color .2s}
+.card:hover{border-color:var(--border2);box-shadow:0 4px 18px rgba(0,0,0,.07)}
+.card-head{padding:14px 15px 13px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.client-name{font-size:15px;font-weight:700;line-height:1.3}
+.project-name{font-size:12px;color:var(--muted);margin-top:3px}
+.csec{border-top:1px solid var(--border);padding:9px 12px}
+.img-strip{display:flex;gap:6px;align-items:center;overflow-x:auto;padding-bottom:2px}
+.img-strip::-webkit-scrollbar{height:3px}
+.img-strip::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.thumb{width:48px;height:48px;border-radius:8px;object-fit:cover;border:1px solid var(--border);cursor:pointer;flex-shrink:0;transition:transform .15s,opacity .15s}
+.thumb:hover{transform:scale(1.07);opacity:.88}
+.img-more{width:48px;height:48px;border-radius:8px;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;flex-shrink:0}
+.img-more:hover{background:var(--border)}
+.add-img{width:40px;height:40px;border-radius:8px;border:1.5px dashed var(--border2);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--hint);font-size:22px;flex-shrink:0;transition:all .15s}
+.add-img:hover{border-color:#999;color:var(--text);background:#fafaf8}
+.no-img{font-size:11px;color:var(--hint);align-self:center}
+.view-all-btn{margin-top:7px;width:100%;height:27px;border:1px solid var(--border2);border-radius:7px;background:none;font-size:11px;font-family:var(--font);color:var(--muted);cursor:pointer}
+.view-all-btn:hover{background:var(--bg);color:var(--text)}
+.row-flex{display:flex;align-items:center;gap:8px}
+.sec-icon{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sec-icon.wp{background:#f0f0ec}
+.sec-icon.wa{background:var(--wgbg)}
+.sec-icon svg{width:13px;height:13px}
+.wp-url{font-size:11px;color:var(--blue);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.wp-url:hover{text-decoration:underline}
+.wp-creds{display:flex;align-items:center;gap:5px;margin-top:2px;flex-wrap:wrap}
+.wp-user{font-size:11px;color:var(--muted)}
+.wp-pv{font-size:11px;font-family:monospace;font-weight:600;filter:blur(3.5px);cursor:pointer;transition:filter .2s;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wp-pv.v{filter:none;user-select:text}
+.lnk{font-size:11px;color:var(--muted);cursor:pointer}
+.lnk:hover{color:var(--text);text-decoration:underline}
+.wa-num{font-size:12px;font-weight:600}
+.wa-prev{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.wa-badge{background:var(--wg);color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 6px;flex-shrink:0}
+.wa-open{height:26px;padding:0 10px;border:1px solid var(--wgd);border-radius:6px;background:var(--wgbg);color:var(--wgd);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font);flex-shrink:0}
+.wa-open:hover{background:var(--wg);color:#fff}
+.no-creds{font-size:11px;color:var(--hint)}
+.card-foot{padding:8px 11px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:6px}
+.ib{width:30px;height:30px;border:1px solid var(--border);border-radius:7px;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.ib:hover{background:#f0f0ec}
+.ib.del:hover{background:var(--rbg)}
+.ib svg{width:13px;height:13px;stroke:var(--muted);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.ib.del svg{stroke:var(--red)}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:16px}
+.overlay.open{display:flex}
+.modal{background:var(--card);border-radius:16px;width:100%;max-width:460px;max-height:92vh;overflow-y:auto;padding:1.5rem;box-shadow:0 12px 48px rgba(0,0,0,.2)}
+.modal h2{font-size:17px;font-weight:700;margin-bottom:1.25rem}
+.frow{margin-bottom:12px}
+.frow label{display:block;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.frow input,.frow select,.frow textarea{width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:8px;font-size:14px;font-family:var(--font);color:var(--text);background:var(--card);outline:none}
+.frow input:focus,.frow select:focus,.frow textarea:focus{border-color:#888}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)}
+.slabel{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+
+/* GALLERY */
+.gal-ov{display:none;position:fixed;inset:0;background:rgba(8,8,6,.94);z-index:300;flex-direction:column}
+.gal-ov.open{display:flex}
+.gal-top{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid rgba(255,255,255,.1);flex-wrap:wrap;gap:10px}
+.gal-title{color:#fff;font-size:14px;font-weight:600}
+.gal-acts{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.gbtn{height:30px;padding:0 12px;border:1px solid rgba(255,255,255,.2);border-radius:7px;background:rgba(255,255,255,.08);color:#fff;font-size:12px;cursor:pointer;font-family:var(--font)}
+.gbtn:hover{background:rgba(255,255,255,.16)}
+.gcl{width:30px;height:30px;border:1px solid rgba(255,255,255,.2);border-radius:7px;background:rgba(255,255,255,.08);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.gcl:hover{background:rgba(255,255,255,.22)}
+.gal-body{flex:1;overflow-y:auto;padding:16px}
+.gal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.gi{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;cursor:pointer;border:2.5px solid transparent;transition:border-color .15s}
+.gi.sel{border-color:#fff}
+.gi img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .15s}
+.gi:hover img{opacity:.82}
+.gi-name{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.56);color:#fff;font-size:10px;padding:4px 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gi-check{position:absolute;top:7px;right:7px;width:20px;height:20px;border-radius:50%;background:#fff;display:none;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#000}
+.gi.sel .gi-check{display:flex}
+.gi-del{position:absolute;top:7px;left:7px;width:20px;height:20px;border-radius:50%;background:rgba(185,28,28,.85);color:#fff;font-size:14px;display:none;align-items:center;justify-content:center;cursor:pointer;line-height:1}
+.gi:hover .gi-del{display:flex}
+.gi-selb{position:absolute;bottom:24px;right:6px;width:18px;height:18px;border-radius:4px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.5);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.gal-count{color:rgba(255,255,255,.45);font-size:12px}
+.gal-empty{color:rgba(255,255,255,.35);text-align:center;padding:3rem;font-size:14px;grid-column:1/-1}
+
+/* LIGHTBOX */
+.lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.97);z-index:400;flex-direction:column}
+.lb.open{display:flex}
+.lb-img-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;width:100%}
+.lb-img-wrap img{max-width:100%;max-height:80vh;object-fit:contain;border-radius:6px}
+.lb-arr{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;font-size:28px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.lb-arr:hover{background:rgba(255,255,255,.2)}
+.lb-arr.p{left:14px}
+.lb-arr.n{right:14px}
+.lb-bot{padding:10px 18px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.lb-name{color:rgba(255,255,255,.6);font-size:13px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-ctr{color:rgba(255,255,255,.4);font-size:12px;flex-shrink:0}
+.lb-close{position:absolute;top:12px;right:14px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.lb-close:hover{background:rgba(255,255,255,.2)}
+.lb-dl{height:30px;padding:0 14px;border:1px solid rgba(255,255,255,.22);border-radius:7px;background:rgba(255,255,255,.08);color:#fff;font-size:12px;cursor:pointer;font-family:var(--font)}
+.lb-dl:hover{background:rgba(255,255,255,.18)}
+
+/* WHATSAPP */
+.wa-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:center;justify-content:center;padding:16px}
+.wa-ov.open{display:flex}
+.wa-modal{background:#e5ddd5;border-radius:16px;width:100%;max-width:420px;height:600px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.25)}
+.wa-hdr{background:var(--wgd);padding:11px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.wa-av{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.wa-hdr-info{flex:1;min-width:0}
+.wa-hdr-name{font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wa-hdr-num{font-size:11px;color:rgba(255,255,255,.7)}
+.wa-hbtn{height:26px;padding:0 10px;border:1px solid rgba(255,255,255,.3);border-radius:6px;background:rgba(255,255,255,.1);color:#fff;font-size:11px;cursor:pointer;font-family:var(--font);flex-shrink:0}
+.wa-hbtn:hover{background:rgba(255,255,255,.2)}
+.wa-hcl{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.wa-hcl:hover{background:rgba(255,255,255,.2)}
+.wa-msgs{flex:1;overflow-y:auto;padding:12px 10px;display:flex;flex-direction:column;gap:5px}
+.wa-msgs::-webkit-scrollbar{width:3px}
+.wa-msgs::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:2px}
+.wa-msg{max-width:76%;padding:7px 10px 4px;border-radius:10px;font-size:13px;line-height:1.45;word-break:break-word}
+.wa-msg.r{background:#fff;border-radius:0 10px 10px 10px;align-self:flex-start}
+.wa-msg.s{background:#dcf8c6;border-radius:10px 10px 0 10px;align-self:flex-end}
+.wa-time{font-size:10px;color:rgba(0,0,0,.38);text-align:right;margin-top:2px}
+.wa-dsep{text-align:center;font-size:11px;color:rgba(0,0,0,.38);background:rgba(255,255,255,.55);border-radius:10px;padding:2px 10px;align-self:center;margin:3px 0}
+.wa-empty{text-align:center;color:rgba(0,0,0,.3);font-size:13px;padding:2rem;align-self:center}
+.wa-note{padding:3px 12px 5px;text-align:center;font-size:11px;color:rgba(0,0,0,.33);background:#e5ddd5;flex-shrink:0}
+.wa-inp-row{background:#f0f0f0;padding:8px 10px;display:flex;gap:7px;align-items:flex-end;flex-shrink:0;border-top:1px solid rgba(0,0,0,.07)}
+.wa-inp-row textarea{flex:1;padding:8px 12px;border-radius:18px;border:none;background:#fff;font-size:13px;font-family:var(--font);color:var(--text);resize:none;outline:none;max-height:90px;line-height:1.4}
+.wa-send{width:38px;height:38px;border-radius:50%;background:var(--wgd);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.wa-send:hover{background:var(--wg)}
+.wa-send svg{width:16px;height:16px;fill:#fff}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#181814;color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;pointer-events:none;opacity:0;transition:opacity .2s;z-index:600;white-space:nowrap}
+.toast.show{opacity:1}
+.loading{text-align:center;padding:10px;color:rgba(255,255,255,.4);font-size:13px;grid-column:1/-1}
+@media(max-width:560px){.stats{grid-template-columns:1fr 1fr}.gal-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <h1>Client Manager</h1>
+    <div class="topbar-right">
+      <button class="btn" onclick="exportData()">Export</button>
+      <button class="btn" onclick="document.getElementById('impF').click()">Import</button>
+      <input type="file" id="impF" accept=".json" style="display:none" onchange="importData(event)">
+      <button class="btn primary" onclick="openAdd()">+ Add client</button>
+    </div>
+  </div>
+  <div class="stats" id="statsBar"></div>
+  <div class="search"><input type="text" id="srch" placeholder="Search clients or projects..." oninput="render()"></div>
+  <div class="filters" id="filterBar"></div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="overlay" id="editOv">
+  <div class="modal">
+    <h2 id="mTitle">Add client</h2>
+    <div class="frow"><label>Client name *</label><input id="fc" placeholder="e.g. John Doe"></div>
+    <div class="frow"><label>Project name *</label><input id="fp" placeholder="e.g. E-commerce website"></div>
+    <div class="frow"><label>Status</label>
+      <select id="fst">
+        <option value="new">New</option>
+        <option value="progressing">Progressing</option>
+        <option value="review">In Review</option>
+        <option value="completed">Completed</option>
+        <option value="hold">On Hold</option>
+      </select>
+    </div>
+    <div class="slabel">WordPress</div>
+    <div class="frow"><label>WP Admin URL</label><input id="fwu" placeholder="https://site.com/wp-admin"></div>
+    <div class="frow"><label>Username</label><input id="fwn" placeholder="admin"></div>
+    <div class="frow"><label>Password</label><input id="fwp" type="password" placeholder="••••••••"></div>
+    <div class="slabel">WhatsApp</div>
+    <div class="frow"><label>WhatsApp number</label><input id="fwa" placeholder="+8801XXXXXXXXX"></div>
+    <div class="frow"><label>Display name</label><input id="fwanm" placeholder="e.g. John"></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeEdit()">Cancel</button>
+      <button class="btn primary" onclick="saveClient()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- GALLERY -->
+<div class="gal-ov" id="galOv">
+  <div class="gal-top">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="gal-title" id="galTitle">Images</div>
+      <div class="gal-count" id="galCount"></div>
+    </div>
+    <div class="gal-acts">
+      <button class="gbtn" onclick="selAll()">Select all</button>
+      <button class="gbtn" onclick="dlSelected()">⬇ Selected</button>
+      <button class="gbtn" onclick="dlAll()">⬇ All</button>
+      <input type="file" id="galInp" accept="image/*" multiple style="display:none" onchange="galUpload(event)">
+      <button class="gbtn" onclick="document.getElementById('galInp').click()">+ Add images</button>
+      <button class="gcl" onclick="closeGal()">&times;</button>
+    </div>
+  </div>
+  <div class="gal-body"><div class="gal-grid" id="galGrid"></div></div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lb" id="lb">
+  <button class="lb-close" onclick="closeLb()">&times;</button>
+  <div class="lb-img-wrap">
+    <button class="lb-arr p" onclick="lbP()">&#8249;</button>
+    <img id="lbImg" src="" alt="">
+    <button class="lb-arr n" onclick="lbN()">&#8250;</button>
+  </div>
+  <div class="lb-bot">
+    <span class="lb-name" id="lbName"></span>
+    <span class="lb-ctr" id="lbCtr"></span>
+    <button class="lb-dl" onclick="dlCurrent()">⬇ Download</button>
+  </div>
+</div>
+
+<!-- WHATSAPP -->
+<div class="wa-ov" id="waOv">
+  <div class="wa-modal">
+    <div class="wa-hdr">
+      <div class="wa-av" id="waAv">?</div>
+      <div class="wa-hdr-info">
+        <div class="wa-hdr-name" id="waName"></div>
+        <div class="wa-hdr-num" id="waNum"></div>
+      </div>
+      <button class="wa-hbtn" onclick="openWAext()">Open WA ↗</button>
+      <button class="wa-hcl" onclick="closeWA()">&times;</button>
+    </div>
+    <div class="wa-msgs" id="waMsgs"></div>
+    <div class="wa-note">💡 Log messages &amp; notes here — saved locally</div>
+    <div class="wa-inp-row">
+      <textarea id="waIn" placeholder="Type a message or note..." rows="1" onkeydown="waKey(event)" oninput="autoH(this)"></textarea>
+      <button class="wa-send" onclick="waSend()"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===================== IndexedDB for unlimited image storage ===================== */
+let db;
+const DB_NAME='ClientManagerDB', DB_VER=1, IMG_STORE='images';
+
+function initDB(){
+  return new Promise((res,rej)=>{
+    const req=indexedDB.open(DB_NAME,DB_VER);
+    req.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains(IMG_STORE)) d.createObjectStore(IMG_STORE,{keyPath:'id'});
+    };
+    req.onsuccess=e=>{db=e.target.result;res();};
+    req.onerror=()=>rej(req.error);
+  });
+}
+
+function dbPut(obj){return new Promise((res,rej)=>{const tx=db.transaction(IMG_STORE,'readwrite');tx.objectStore(IMG_STORE).put(obj).onsuccess=()=>res();tx.onerror=()=>rej();});}
+function dbGet(id){return new Promise((res,rej)=>{const tx=db.transaction(IMG_STORE,'readonly');const req=tx.objectStore(IMG_STORE).get(id);req.onsuccess=()=>res(req.result);req.onerror=()=>rej();});}
+function dbDel(id){return new Promise((res,rej)=>{const tx=db.transaction(IMG_STORE,'readwrite');tx.objectStore(IMG_STORE).delete(id).onsuccess=()=>res();tx.onerror=()=>rej();});}
+function dbGetAll(ids){return Promise.all(ids.map(id=>dbGet(id)));}
+
+/* ===================== App state ===================== */
+let C=[], editId=null, galId=null, galSel=new Set(), lbImgs=[], lbIdx=0, waId=null, activeFilter='all';
+
+function loadClients(){try{return JSON.parse(localStorage.getItem('cm5')||'[]');}catch{return[];}}
+function saveClients(){try{localStorage.setItem('cm5',JSON.stringify(C));}catch{}}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function ini(n){return(n||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');}
+function fmtTime(ts){return new Date(ts).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});}
+function fmtDate(ts){return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+
+const STATUS_MAP={
+  new:{label:'New',cls:'s-new'},
+  progressing:{label:'Progressing',cls:'s-progressing'},
+  review:{label:'In Review',cls:'s-review'},
+  completed:{label:'Completed',cls:'s-completed'},
+  hold:{label:'On Hold',cls:'s-hold'}
+};
+function badge(s){const m=STATUS_MAP[s]||STATUS_MAP['new'];return`<span class="sbadge ${m.cls}">${m.label}</span>`;}
+
+/* ===================== Render ===================== */
+function render(){
+  const q=document.getElementById('srch').value.toLowerCase();
+  let list=C.filter(c=>{
+    const qm=!q||c.client.toLowerCase().includes(q)||c.project.toLowerCase().includes(q);
+    const fm=activeFilter==='all'||c.status===activeFilter;
+    return qm&&fm;
+  });
+
+  // Stats
+  const total=C.length;
+  const prog=C.filter(c=>c.status==='progressing').length;
+  const done=C.filter(c=>c.status==='completed').length;
+  const hold=C.filter(c=>c.status==='hold').length;
+  document.getElementById('statsBar').innerHTML=`
+    <div class="stat"><div class="stat-n">${total}</div><div class="stat-l">Total</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--blue)">${prog}</div><div class="stat-l">Progressing</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--green)">${done}</div><div class="stat-l">Completed</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--red)">${hold}</div><div class="stat-l">On Hold</div></div>`;
+
+  // Filters
+  const filters=[['all','All'],['new','New'],['progressing','Progressing'],['review','In Review'],['completed','Completed'],['hold','On Hold']];
+  document.getElementById('filterBar').innerHTML=filters.map(([v,l])=>`<button class="fc${activeFilter===v?' on':''}" onclick="setFilter('${v}')">${l}</button>`).join('');
+
+  if(!list.length){
+    document.getElementById('grid').innerHTML=`<div class="empty"><p>${q||activeFilter!=='all'?'No results.':'No clients yet.'}</p><button class="btn primary" onclick="openAdd()">+ Add first client</button></div>`;
+    return;
+  }
+
+  document.getElementById('grid').innerHTML=list.map(c=>{
+    const imgIds=c.imageIds||[];
+    const MAX=4;
+    // Render with placeholders, load images async
+    const thumbsHTML=imgIds.slice(0,MAX).map((id,i)=>`<img class="thumb" id="th-${id}" src="" data-cid="${c.id}" data-idx="${i}" onclick="openLbFrom(${c.id},${i})" alt="">`).join('');
+    const more=imgIds.length>MAX?`<div class="img-more" onclick="openGal(${c.id})">+${imgIds.length-MAX}</div>`:'';
+    const imgHTML=imgIds.length?`${thumbsHTML}${more}`:`<span class="no-img">No images yet</span>`;
+    const msgs=c.messages||[],unread=msgs.filter(m=>m.type==='r'&&!m.read).length,lastMsg=msgs.length?msgs[msgs.length-1]:null;
+
+    const waRow=c.wanum?`<div class="csec row-flex">
+      <div class="sec-icon wa"><svg viewBox="0 0 24 24" fill="var(--wgd)"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></div>
+      <div style="flex:1;min-width:0"><div class="wa-num">${esc(c.waname||c.wanum)}${unread?` <span class="wa-badge">${unread}</span>`:''}</div><div class="wa-prev">${lastMsg?esc(lastMsg.text.slice(0,38))+(lastMsg.text.length>38?'…':''):'Tap to open chat'}</div></div>
+      <button class="wa-open" onclick="openWA(${c.id})">Chat</button>
+    </div>`:
+    `<div class="csec"><span class="no-creds">No WhatsApp linked</span></div>`;
+
+    const wpRow=(c.wppass||c.wpurl)?`<div class="csec row-flex">
+      <div class="sec-icon wp"><svg viewBox="0 0 24 24" fill="var(--muted)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM3.5 12c0-1.06.19-2.07.53-3l3.67 10.05C5.27 17.48 3.5 14.94 3.5 12zM12 20.5c-.72 0-1.42-.1-2.08-.28l2.2-6.41 2.26 6.19c.78-.26 1.61-.41 2.42-.41zm1.04-11.01l1.91 5.68-.53 1.76-1.7-5.05zm-2.54.26l-.24.37-1.73 5.17-1.55-4.64 1.73-1.93zm1.5-.74c.48.02.93.08 1.34.17l-1.19 3.54-1.15-3.44c.37-.43.77-.61 1.15-.61zM17.7 8.1c.56.97.88 2.1.88 3.29 0 2.32-1.06 4.39-2.72 5.75l2.5-7.23c-.21-.6-.44-1.2-.66-1.81zM12 3.5c4.41 0 7.99 3.58 7.99 7.99 0 4.42-3.58 8-8 8S4 15.9 4 11.49C4 7.07 7.58 3.5 12 3.5z"/></svg></div>
+      <div class="wp-info" style="flex:1;min-width:0">
+        ${c.wpurl?`<a class="wp-url" href="${esc(c.wpurl)}" target="_blank">${esc(c.wpurl)}</a>`:''}
+        <div class="wp-creds">${c.wpuser?`<span class="wp-user">${esc(c.wpuser)}</span>`:''}${c.wppass?`<span class="wp-pv" id="wpp-${c.id}">${esc(c.wppass)}</span><span class="lnk" onclick="togP(${c.id})">show</span><span class="lnk" onclick="cp('${esc(c.wppass)}','Password copied!')">copy</span>`:''}</div>
+      </div>
+    </div>`:
+    `<div class="csec"><span class="no-creds">No WordPress credentials</span></div>`;
+
+    return`<div class="card">
+      <div class="card-head">
+        <div><div class="client-name">${esc(c.client)}</div><div class="project-name">${esc(c.project)}</div></div>
+        ${badge(c.status||'new')}
+      </div>
+      <div class="csec">
+        <div class="img-strip">${imgHTML}<button class="add-img" onclick="document.getElementById('ii-${c.id}').click()" title="Add images">+</button><input type="file" id="ii-${c.id}" accept="image/*" multiple style="display:none" onchange="imgUp(event,${c.id})"></div>
+        ${imgIds.length?`<button class="view-all-btn" onclick="openGal(${c.id})">View all ${imgIds.length} image${imgIds.length>1?'s':''} &nbsp;›</button>`:''}
+      </div>
+      ${waRow}${wpRow}
+      <div class="card-foot">
+        <div class="ib" onclick="openEdit(${c.id})" title="Edit"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>
+        <div class="ib del" onclick="delClient(${c.id})" title="Delete"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Load thumbnails async (non-blocking)
+  list.forEach(c=>{
+    const imgIds=c.imageIds||[];
+    imgIds.slice(0,4).forEach((id,i)=>{
+      dbGet(id).then(rec=>{
+        if(!rec)return;
+        const el=document.getElementById('th-'+id);
+        if(el) el.src=rec.data;
+      }).catch(()=>{});
+    });
+  });
+}
+
+function setFilter(f){activeFilter=f;render();}
+
+/* ===================== Image upload ===================== */
+function imgUp(e,cid){
+  const c=C.find(x=>x.id===cid);if(!c)return;
+  if(!c.imageIds)c.imageIds=[];
+  saveImages(Array.from(e.target.files),cid,()=>{saveClients();render();});
+  e.target.value='';
+}
+
+function galUpload(e){
+  const c=C.find(x=>x.id===galId);if(!c)return;
+  if(!c.imageIds)c.imageIds=[];
+  saveImages(Array.from(e.target.files),galId,()=>{saveClients();renderGal();render();});
+  e.target.value='';
+}
+
+function saveImages(files,cid,cb){
+  const c=C.find(x=>x.id===cid);if(!c)return;
+  let done=0;
+  if(!files.length){cb();return;}
+  files.forEach(f=>{
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      const imgId='img_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      c.imageIds.push(imgId);
+      dbPut({id:imgId,cid,name:f.name,size:f.size,data:ev.target.result}).then(()=>{
+        if(++done===files.length)cb();
+      });
+    };
+    reader.readAsDataURL(f);
+  });
+}
+
+/* ===================== Gallery ===================== */
+let galImgCache=[];
+
+function openGal(cid){
+  galId=cid;galSel=new Set();galImgCache=[];
+  const c=C.find(x=>x.id===cid);
+  document.getElementById('galTitle').textContent=`${c.client} — ${c.project}`;
+  document.getElementById('galCount').textContent='Loading...';
+  document.getElementById('galGrid').innerHTML=`<div class="loading">Loading images...</div>`;
+  document.getElementById('galOv').classList.add('open');
+  loadGalImages(cid);
+}
+
+async function loadGalImages(cid){
+  const c=C.find(x=>x.id===cid);if(!c)return;
+  const ids=c.imageIds||[];
+  galImgCache=[];
+  for(const id of ids){
+    const rec=await dbGet(id).catch(()=>null);
+    if(rec) galImgCache.push(rec);
+  }
+  document.getElementById('galCount').textContent=`${galImgCache.length} image${galImgCache.length!==1?'s':''}`;
+  renderGal();
+}
+
+function renderGal(){
+  if(!galImgCache.length){document.getElementById('galGrid').innerHTML=`<div class="gal-empty">No images yet. Click "+ Add images" to upload.</div>`;return;}
+  document.getElementById('galGrid').innerHTML=galImgCache.map((img,i)=>`
+    <div class="gi${galSel.has(i)?' sel':''}" id="gi-${i}">
+      <img src="${img.data}" alt="${esc(img.name)}" onclick="openLbGal(${i})">
+      <div class="gi-name">${esc(img.name)}</div>
+      <div class="gi-check">✓</div>
+      <div class="gi-del" onclick="delGalImg(${i},event)">&times;</div>
+      <div class="gi-selb" onclick="togSel(${i},event)" title="Select"></div>
+    </div>`).join('');
+}
+
+function togSel(i,e){e.stopPropagation();galSel.has(i)?galSel.delete(i):galSel.add(i);renderGal();}
+function selAll(){galSel.size===galImgCache.length?galSel=new Set():galImgCache.forEach((_,i)=>galSel.add(i));renderGal();}
+
+async function delGalImg(i,e){
+  e.stopPropagation();
+  if(!confirm('Delete this image?'))return;
+  const img=galImgCache[i];
+  const c=C.find(x=>x.id===galId);
+  if(c){c.imageIds=c.imageIds.filter(id=>id!==img.id);saveClients();}
+  await dbDel(img.id);
+  galImgCache.splice(i,1);
+  galSel=new Set([...galSel].filter(x=>x!==i).map(x=>x>i?x-1:x));
+  document.getElementById('galCount').textContent=`${galImgCache.length} image${galImgCache.length!==1?'s':''}`;
+  renderGal();render();
+}
+
+function dlSelected(){if(!galSel.size){showToast('Select images first');return;}[...galSel].forEach(i=>{const img=galImgCache[i];if(img)dlDU(img.data,img.name);});showToast(`Downloading ${galSel.size} image(s)...`);}
+function dlAll(){if(!galImgCache.length){showToast('No images');return;}galImgCache.forEach(img=>dlDU(img.data,img.name));showToast(`Downloading all ${galImgCache.length} images...`);}
+function closeGal(){document.getElementById('galOv').classList.remove('open');}
+
+/* ===================== Lightbox ===================== */
+async function openLbFrom(cid,idx){
+  const c=C.find(x=>x.id===cid);if(!c)return;
+  const ids=c.imageIds||[];
+  lbImgs=await dbGetAll(ids).then(r=>r.filter(Boolean));
+  lbIdx=idx;showLb();
+}
+
+function openLbGal(idx){lbImgs=galImgCache;lbIdx=idx;showLb();}
+
+function showLb(){
+  if(!lbImgs.length)return;
+  const img=lbImgs[lbIdx];
+  document.getElementById('lbImg').src=img.data;
+  document.getElementById('lbName').textContent=img.name;
+  document.getElementById('lbCtr').textContent=(lbIdx+1)+' / '+lbImgs.length;
+  document.getElementById('lb').classList.add('open');
+}
+function lbP(){if(lbImgs.length){lbIdx=(lbIdx-1+lbImgs.length)%lbImgs.length;showLb();}}
+function lbN(){if(lbImgs.length){lbIdx=(lbIdx+1)%lbImgs.length;showLb();}}
+function closeLb(){document.getElementById('lb').classList.remove('open');}
+function dlCurrent(){if(lbImgs[lbIdx])dlDU(lbImgs[lbIdx].data,lbImgs[lbIdx].name);}
+function dlDU(d,n){const a=document.createElement('a');a.href=d;a.download=n;a.click();}
+
+/* ===================== WordPress ===================== */
+function togP(id){const el=document.getElementById('wpp-'+id),t=el.nextElementSibling;el.classList.toggle('v');t.textContent=el.classList.contains('v')?'hide':'show';}
+function cp(txt,msg){navigator.clipboard.writeText(txt).then(()=>showToast(msg)).catch(()=>{const t=document.createElement('textarea');t.value=txt;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);showToast(msg);});}
+
+/* ===================== WhatsApp ===================== */
+function openWA(id){
+  waId=id;const c=C.find(x=>x.id===id);if(!c)return;
+  document.getElementById('waAv').textContent=ini(c.waname||c.client);
+  document.getElementById('waName').textContent=c.waname||c.client;
+  document.getElementById('waNum').textContent=c.wanum||'';
+  if(!c.messages)c.messages=[];
+  c.messages.forEach(m=>{if(m.type==='r')m.read=true;});
+  saveClients();renderWA();
+  document.getElementById('waOv').classList.add('open');
+  setTimeout(()=>document.getElementById('waIn').focus(),100);
+  render();
+}
+function openWAext(){const c=C.find(x=>x.id===waId);if(c&&c.wanum){window.open('https://wa.me/'+c.wanum.replace(/\D/g,''),'_blank');}else showToast('No WhatsApp number saved');}
+function renderWA(){
+  const c=C.find(x=>x.id===waId);if(!c)return;
+  const msgs=c.messages||[];
+  if(!msgs.length){document.getElementById('waMsgs').innerHTML=`<div class="wa-empty">No messages logged yet.<br>Type below to add notes.</div>`;return;}
+  let html='',ld='';
+  msgs.forEach(m=>{
+    const ds=fmtDate(m.time);
+    if(ds!==ld){html+=`<div class="wa-dsep">${ds}</div>`;ld=ds;}
+    html+=`<div class="wa-msg ${m.type}"><div>${esc(m.text)}</div><div class="wa-time">${fmtTime(m.time)}</div></div>`;
+  });
+  const el=document.getElementById('waMsgs');el.innerHTML=html;el.scrollTop=el.scrollHeight;
+}
+function waSend(){
+  const inp=document.getElementById('waIn'),text=inp.value.trim();if(!text)return;
+  const c=C.find(x=>x.id===waId);if(!c)return;
+  if(!c.messages)c.messages=[];
+  c.messages.push({type:'s',text,time:Date.now(),read:true});
+  saveClients();renderWA();render();inp.value='';autoH(inp);
+}
+function waKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();waSend();}}
+function autoH(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,90)+'px';}
+function closeWA(){document.getElementById('waOv').classList.remove('open');}
+
+/* ===================== Add / Edit ===================== */
+function openAdd(){
+  editId=null;document.getElementById('mTitle').textContent='Add client';
+  ['fc','fp','fwu','fwn','fwp','fwa','fwanm'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fst').value='new';
+  document.getElementById('editOv').classList.add('open');
+}
+function openEdit(id){
+  const c=C.find(x=>x.id===id);if(!c)return;editId=id;
+  document.getElementById('mTitle').textContent='Edit client';
+  document.getElementById('fc').value=c.client||'';
+  document.getElementById('fp').value=c.project||'';
+  document.getElementById('fst').value=c.status||'new';
+  document.getElementById('fwu').value=c.wpurl||'';
+  document.getElementById('fwn').value=c.wpuser||'';
+  document.getElementById('fwp').value=c.wppass||'';
+  document.getElementById('fwa').value=c.wanum||'';
+  document.getElementById('fwanm').value=c.waname||'';
+  document.getElementById('editOv').classList.add('open');
+}
+function closeEdit(){document.getElementById('editOv').classList.remove('open');}
+function saveClient(){
+  const client=document.getElementById('fc').value.trim(),project=document.getElementById('fp').value.trim();
+  if(!client||!project){alert('Client and project name required.');return;}
+  const d={client,project,status:document.getElementById('fst').value,wpurl:document.getElementById('fwu').value.trim(),wpuser:document.getElementById('fwn').value.trim(),wppass:document.getElementById('fwp').value,wanum:document.getElementById('fwa').value.trim(),waname:document.getElementById('fwanm').value.trim()};
+  if(editId!==null){const idx=C.findIndex(c=>c.id===editId);if(idx>-1)C[idx]={...C[idx],...d};}
+  else C.push({id:Date.now(),imageIds:[],messages:[],...d});
+  saveClients();closeEdit();render();
+}
+async function delClient(id){
+  if(!confirm('Delete this client and all their images?'))return;
+  const c=C.find(x=>x.id===id);
+  if(c&&c.imageIds) await Promise.all(c.imageIds.map(imgId=>dbDel(imgId)));
+  C=C.filter(x=>x.id!==id);saveClients();render();
+}
+
+/* ===================== Export / Import ===================== */
+async function exportData(){
+  // Export clients metadata + all images embedded
+  const out=[];
+  for(const c of C){
+    const imgs=await dbGetAll(c.imageIds||[]).then(r=>r.filter(Boolean));
+    out.push({...c,_images:imgs});
+  }
+  const b=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='clients-backup.json';a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+  showToast('Backup exported!');
+}
+
+async function importData(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=async ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!Array.isArray(data))throw 0;
+      if(!confirm(`Import ${data.length} clients? This replaces current data.`))return;
+      // Clear old images
+      for(const c of C) await Promise.all((c.imageIds||[]).map(id=>dbDel(id)));
+      C=[];
+      for(const raw of data){
+        const imgs=raw._images||[];
+        const imageIds=[];
+        for(const img of imgs){
+          await dbPut(img);
+          imageIds.push(img.id);
+        }
+        const {_images,...rest}=raw;
+        C.push({...rest,imageIds});
+      }
+      saveClients();render();showToast('Import successful!');
+    }catch(err){alert('Invalid backup file.');}
+  };
+  r.readAsText(f);e.target.value='';
+}
+
+/* ===================== Utils ===================== */
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2300);}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeEdit();closeGal();closeLb();closeWA();}
+  if(document.getElementById('lb').classList.contains('open')){if(e.key==='ArrowLeft')lbP();if(e.key==='ArrowRight')lbN();}
+});
+document.getElementById('editOv').addEventListener('click',function(e){if(e.target===this)closeEdit();});
+document.getElementById('waOv').addEventListener('click',function(e){if(e.target===this)closeWA();});
+
+/* ===================== Boot ===================== */
+initDB().then(()=>{C=loadClients();render();}).catch(()=>{C=loadClients();render();showToast('Storage error — images may not save.');});
+</script>
+</body>
+</html>
